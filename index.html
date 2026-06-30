@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VastuDam – Object Price Scout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0B0F0A;--surface:#141810;--card:#1A1F18;--border:#2A3028;
+    --accent:#8EE36A;--accent2:#F5A623;--accent3:#5BB8F5;
+    --text:#E8EDDF;--muted:#7A8C74;--danger:#F56565;
+    --radius:16px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;line-height:1.6}
+
+  header{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--border);position:sticky;top:0;
+    background:rgba(11,15,10,0.95);backdrop-filter:blur(12px);z-index:100}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:17px}
+  .logo-text{font-family:'Playfair Display',serif;font-size:19px;font-weight:700}
+  .logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+  .badge{background:rgba(142,227,106,0.12);border:1px solid rgba(142,227,106,0.3);
+    color:var(--accent);font-size:11px;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:1px}
+
+  .hero{padding:40px 20px 28px;max-width:700px;margin:0 auto;text-align:center}
+  .hero h1{font-family:'Playfair Display',serif;font-size:clamp(32px,7vw,58px);font-weight:900;line-height:1.1;margin-bottom:10px}
+  .hero h1 span{color:var(--accent)}
+  .hero p{color:var(--muted);font-size:14px;max-width:420px;margin:0 auto}
+
+  .panel{max-width:680px;margin:0 auto 60px;padding:0 20px}
+
+  /* SETUP CARD */
+  .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+  .setup-title{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .setup-desc{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.7}
+  .setup-desc a{color:var(--accent3);text-decoration:none}
+  .setup-desc a:hover{text-decoration:underline}
+  .api-row{display:flex;gap:10px}
+  .api-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+    padding:11px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+  .api-input:focus{border-color:var(--accent)}
+  .api-input::placeholder{color:var(--muted)}
+  .btn-save{background:var(--accent);color:#0B0F0A;border:none;border-radius:10px;
+    padding:11px 18px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:background 0.2s}
+  .btn-save:hover{background:#a8f080}
+  .api-saved{display:none;align-items:center;gap:8px;font-size:13px;color:var(--accent);margin-top:10px}
+  .steps-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;
+    background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border)}
+  .step-item{font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+  .step-num{background:var(--accent);color:#0B0F0A;border-radius:50%;
+    width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
+  .free-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(142,227,106,0.1);
+    border:1px solid rgba(142,227,106,0.3);color:var(--accent);font-size:11px;
+    padding:3px 8px;border-radius:20px;margin-left:6px;font-weight:600}
+
+  /* FILE INPUTS */
+  #cameraInput,#fileInput{display:none}
+  .capture-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .cap-label{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;padding:34px 16px;border-radius:var(--radius);
+    border:1.5px solid var(--border);background:var(--surface);
+    color:var(--text);font-size:14px;font-weight:600;
+    cursor:pointer;transition:all 0.2s;text-align:center;
+    -webkit-tap-highlight-color:transparent;user-select:none}
+  .cap-label:hover,.cap-label:active{border-color:var(--accent);background:rgba(142,227,106,0.07);transform:scale(0.98)}
+  .cap-label.camera{border-color:rgba(142,227,106,0.4);background:rgba(142,227,106,0.07)}
+  .cap-label.camera:hover,.cap-label.camera:active{background:rgba(142,227,106,0.14)}
+  .cap-icon{font-size:40px;line-height:1}
+  .cap-sub{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+
+  .loc-sep{text-align:center;font-size:11px;color:var(--muted);margin:2px 0 14px;letter-spacing:2px;text-transform:uppercase}
+  .loc-label-txt{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .loc-opt{font-size:10px;background:var(--card);border:1px solid var(--border);padding:2px 7px;border-radius:10px;letter-spacing:0.5px}
+  .loc-input{width:100%;background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:12px 16px;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s}
+  .loc-input:focus{border-color:var(--accent)}
+  .loc-input::placeholder{color:var(--muted)}
+
+  #previewArea{display:none}
+  .preview-img-wrap{border-radius:var(--radius);overflow:hidden;background:var(--card);margin-bottom:12px}
+  .preview-img-wrap img{width:100%;max-height:360px;object-fit:contain;display:block;background:#0d110c}
+  .preview-controls{display:flex;gap:10px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 20px;border-radius:10px;font-family:'Space Grotesk',sans-serif;
+    font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+  .btn-primary{background:var(--accent);color:#0B0F0A;flex:1}
+  .btn-primary:hover{background:#a8f080}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+  .btn-ghost{background:var(--border);color:var(--muted)}
+  .btn-ghost:hover{background:#374235;color:var(--text)}
+
+  #loaderArea{display:none}
+  .loader-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center}
+  .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);
+    border-radius:50%;animation:spin 0.85s linear infinite;margin:0 auto 18px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader-steps{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+  .lstep{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;justify-content:center}
+  .lstep.active{color:var(--accent)}
+  .lstep.done{color:var(--text)}
+  .ldot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+  #errorArea{display:none;background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);
+    border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:20px}
+  #errorArea p{color:var(--danger);font-size:13px;margin-top:8px;line-height:1.6}
+
+  #resultsArea{display:none}
+  .result-header{display:flex;align-items:flex-start;gap:16px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .result-thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+  .result-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:5px}
+  .result-desc{color:var(--muted);font-size:13px;line-height:1.65}
+  .result-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .tag{background:var(--card);border:1px solid var(--border);font-size:11px;padding:3px 9px;border-radius:20px;color:var(--muted)}
+  .tag.green{border-color:rgba(142,227,106,0.4);color:var(--accent);background:rgba(142,227,106,0.08)}
+  .tag.blue{border-color:rgba(91,184,245,0.4);color:var(--accent3);background:rgba(91,184,245,0.08)}
+  .tag.orange{border-color:rgba(245,166,35,0.4);color:var(--accent2);background:rgba(245,166,35,0.08)}
+
+  .sec{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);
+    margin:18px 0 12px;display:flex;align-items:center;gap:10px}
+  .sec::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  .profit-panel{background:linear-gradient(135deg,rgba(142,227,106,0.08),rgba(91,184,245,0.04));
+    border:1px solid rgba(142,227,106,0.25);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .profit-title{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:13px}
+  .profit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:480px){.profit-grid{grid-template-columns:1fr 1fr}}
+  .pstat{text-align:center}
+  .pnum{font-size:18px;font-weight:700;color:var(--accent)}
+  .plbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  .psummary{margin-top:13px;font-size:12px;color:var(--muted);text-align:center;font-style:italic}
+
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  @media(max-width:500px){.price-grid{grid-template-columns:1fr}}
+  .price-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  .pchdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .flag{font-size:22px}
+  .pcn{font-weight:600;font-size:14px}
+  .pcs{font-size:11px;color:var(--muted)}
+  .pmain{font-size:24px;font-weight:700;color:var(--accent);margin-bottom:2px}
+  .prng{font-size:11px;color:var(--muted);margin-bottom:12px}
+  .srcs{display:flex;flex-direction:column;gap:6px}
+  .src{display:flex;justify-content:space-between;align-items:center;font-size:12px;
+    padding:7px 10px;background:var(--surface);border-radius:7px;border:1px solid var(--border)}
+  .sname{color:var(--text);font-weight:500}
+  .sprice{color:var(--accent2);font-weight:600}
+  .stag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+
+  .sell-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+  .sell-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+  .sell-icon{font-size:24px;margin-bottom:6px}
+  .sell-name{font-size:13px;font-weight:600;margin-bottom:2px}
+  .sell-margin{font-size:12px;color:var(--accent)}
+  .sell-desc{font-size:11px;color:var(--muted);margin-top:3px}
+
+  .tips{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}
+  .tip{background:var(--card);border:1px solid var(--border);border-radius:11px;
+    padding:13px 16px;display:flex;gap:11px;align-items:flex-start}
+  .tipicon{font-size:17px;flex-shrink:0;margin-top:2px}
+  .tiptext{font-size:13px;color:var(--muted);line-height:1.6}
+  .tiptext strong{color:var(--text)}
+
+  .reset-row{display:flex;justify-content:center;padding:16px 0 40px}
+
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔍</div>
+    <div>
+      <div class="logo-text">VastuDam</div>
+      <div class="logo-sub">Price Scout</div>
+    </div>
+  </div>
+  <div class="badge">Powered by Gemini</div>
+</header>
+
+<div class="hero">
+  <h1>Snap it.<br><span>Scout the price.</span></h1>
+  <p>Click a photo or upload one — AI identifies the object and tells you where to buy cheapest in India & worldwide.</p>
+</div>
+
+<div class="panel">
+
+  <!-- API KEY SETUP -->
+  <div class="setup-card" id="setupCard">
+    <div class="setup-title">🔑 One-time Setup <span class="free-badge">✅ 100% FREE</span></div>
+    <div class="setup-desc">
+      Get your free Gemini API key from <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. 
+      Just sign in with Google — <strong>no credit card, no billing</strong>. 1500 requests free every day. Your key stays saved in your browser.
+    </div>
+    <div class="api-row">
+      <input class="api-input" id="apiKeyInput" type="password" placeholder="AIzaSy..." />
+      <button class="btn-save" onclick="saveKey()">Save →</button>
+    </div>
+    <div class="api-saved" id="apiSaved">✅ Key saved! You're ready to scan objects.</div>
+    <div class="steps-list">
+      <div class="step-item"><div class="step-num">1</div><span>Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent3)">aistudio.google.com/apikey</a> → sign in with Google</span></div>
+      <div class="step-item"><div class="step-num">2</div><span>Click <strong style="color:var(--text)">"Create API Key"</strong> → copy it</span></div>
+      <div class="step-item"><div class="step-num">3</div><span>Paste above and click Save — done forever!</span></div>
+    </div>
+  </div>
+
+  <!-- HIDDEN FILE INPUTS -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" />
+  <input type="file" id="fileInput" accept="image/*" />
+
+  <!-- CAPTURE AREA -->
+  <div id="captureArea" style="display:none">
+    <div class="capture-grid">
+      <label for="cameraInput" class="cap-label camera">
+        <div class="cap-icon">📷</div>
+        <div>Click Photo</div>
+        <div class="cap-sub">Opens your camera</div>
+      </label>
+      <label for="fileInput" class="cap-label">
+        <div class="cap-icon">🖼️</div>
+        <div>Upload Image</div>
+        <div class="cap-sub">Gallery or file</div>
+      </label>
+    </div>
+    <div class="loc-sep">— optional: add your location for better results —</div>
+    <div class="loc-label-txt">
+      📍 Your Location
+      <span class="loc-opt">OPTIONAL · defaults to India</span>
+    </div>
+    <input class="loc-input" id="userLocation" type="text"
+      placeholder="e.g. Nalgonda, Telangana  or  Nairobi, Kenya" />
+  </div>
+
+  <!-- PREVIEW -->
+  <div id="previewArea">
+    <div class="preview-img-wrap">
+      <img id="previewImg" src="" alt="Preview" />
+    </div>
+    <div class="preview-controls">
+      <button class="btn btn-ghost" id="changeBtn">🔄 Retake / Change</button>
+      <button class="btn btn-primary" id="analyzeBtn">🔍 Scout This Object</button>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div id="loaderArea">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <div style="font-size:15px;font-weight:600">Scanning your object…</div>
+      <div class="loader-steps">
+        <div class="lstep" id="s1"><div class="ldot"></div>Identifying object with AI vision</div>
+        <div class="lstep" id="s2"><div class="ldot"></div>Researching India buying sources</div>
+        <div class="lstep" id="s3"><div class="ldot"></div>Scanning global markets</div>
+        <div class="lstep" id="s4"><div class="ldot"></div>Calculating profit opportunity</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="errorArea">
+    <div style="font-size:30px">⚠️</div>
+    <p id="errorMsg">Something went wrong. Please try again.</p>
+    <button class="btn btn-ghost" onclick="backToCapture()" style="margin-top:14px">Try Again</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsArea"></div>
+
+</div>
+
+<script>
+let b64 = null, mime = null;
+let apiKey = localStorage.getItem('gemini_api_key') || '';
+
+const cameraInput = document.getElementById('cameraInput');
+const fileInput   = document.getElementById('fileInput');
+const captureArea = document.getElementById('captureArea');
+const previewArea = document.getElementById('previewArea');
+const previewImg  = document.getElementById('previewImg');
+const analyzeBtn  = document.getElementById('analyzeBtn');
+const changeBtn   = document.getElementById('changeBtn');
+const loaderArea  = document.getElementById('loaderArea');
+const resultsArea = document.getElementById('resultsArea');
+const errorArea   = document.getElementById('errorArea');
+const setupCard   = document.getElementById('setupCard');
+const steps       = [1,2,3,4].map(i => document.getElementById('s'+i));
+
+// If key already saved, show capture area directly
+if (apiKey) {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiSaved').style.display = 'flex';
+  setupCard.style.borderColor = 'rgba(142,227,106,0.3)';
+  captureArea.style.display = '';
+}
+
+function saveKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k) { alert('Please enter your Gemini API key'); return; }
+  apiKey = k;
+  localStorage.setItem('gemini_api_key', k);
+  document.getElementById('apiSaved').style.display = 'flex';
+  setupCard.style.borderColor = 'rgba(142,227,106,0.3)';
+  captureArea.style.display = '';
+}
+
+function hide(el){ el.style.display = 'none'; }
+function show(el){ el.style.display = 'block'; }
+
+cameraInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileInput.addEventListener('change',   e => handleFile(e.target.files[0]));
+
+changeBtn.addEventListener('click', backToCapture);
+analyzeBtn.addEventListener('click', analyze);
+
+function handleFile(file) {
+  if (!file) return;
+  mime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    b64 = e.target.result.split(',')[1];
+    previewImg.src = e.target.result;
+    hide(captureArea);
+    show(previewArea);
+    hide(errorArea);
+  };
+  reader.readAsDataURL(file);
+}
+
+function backToCapture() {
+  b64 = null; cameraInput.value = ''; fileInput.value = '';
+  resultsArea.style.display = 'none'; resultsArea.innerHTML = '';
+  hide(previewArea); hide(loaderArea); hide(errorArea);
+  captureArea.style.display = '';
+}
+
+async function analyze() {
+  if (!b64 || !apiKey) return;
+  const loc = document.getElementById('userLocation').value.trim() || 'India';
+
+  resultsArea.style.display = 'none'; resultsArea.innerHTML = '';
+  hide(errorArea); hide(previewArea);
+  steps.forEach(s => s.className = 'lstep');
+  show(loaderArea);
+  analyzeBtn.disabled = true;
+
+  let si = 0;
+  const t = setInterval(() => {
+    if (si < steps.length) {
+      if (si > 0) steps[si-1].className = 'lstep done';
+      steps[si].className = 'lstep active'; si++;
+    }
+  }, 1200);
+
+  const prompt = `You are VastuDam, an expert object identification and global trade intelligence system.
+Identify the object in this image and provide complete price intelligence for someone in ${loc}.
+Assume they want to BUY LOW and SELL HIGH for profit.
+Respond ONLY with valid raw JSON, absolutely no markdown, no backticks, no explanation before or after:
+{
+  "objectName":"Full precise name",
+  "category":"Category",
+  "description":"2-3 sentences about this object and its uses",
+  "quality":"Budget|Mid-range|Premium|Luxury",
+  "tags":["tag1","tag2","tag3"],
+  "indiaPrices":{
+    "averagePrice":"₹XXXX",
+    "priceRange":"₹XXX - ₹XXXX",
+    "sources":[
+      {"name":"Source","price":"₹XXX","type":"Online/Wholesale/Mandi/Retail","note":"short note"},
+      {"name":"Source","price":"₹XXX","type":"Online/Wholesale/Mandi/Retail","note":"short note"},
+      {"name":"Source","price":"₹XXX","type":"Online/Wholesale/Mandi/Retail","note":"short note"}
+    ]
+  },
+  "globalPrices":{
+    "bestSourceCountry":"Country",
+    "flag":"🇨🇳",
+    "averagePrice":"$XX",
+    "priceRange":"$XX - $XX",
+    "sources":[
+      {"name":"Source","price":"$XX","type":"Wholesale/B2B/Retail","country":"Country","note":"short note"},
+      {"name":"Source","price":"$XX","type":"Wholesale/B2B/Retail","country":"Country","note":"short note"},
+      {"name":"Source","price":"$XX","type":"Wholesale/B2B/Retail","country":"Country","note":"short note"}
+    ]
+  },
+  "profitAnalysis":{
+    "buyAt":"Best buy price",
+    "sellAt":"Realistic sell price",
+    "margin":"XX%",
+    "profitPerUnit":"₹XXX per unit",
+    "breakEven":"XX units",
+    "summary":"One sentence opportunity summary"
+  },
+  "whereToSell":[
+    {"icon":"🏪","name":"Platform","margin":"XX%","desc":"Brief tip"},
+    {"icon":"📦","name":"Platform","margin":"XX%","desc":"Brief tip"},
+    {"icon":"🌐","name":"Platform","margin":"XX%","desc":"Brief tip"},
+    {"icon":"🤝","name":"Platform","margin":"XX%","desc":"Brief tip"}
+  ],
+  "buyingTips":[
+    {"icon":"💡","tip":"Title","detail":"Actionable advice"},
+    {"icon":"🛒","tip":"Title","detail":"Actionable advice"},
+    {"icon":"⚠️","tip":"Title","detail":"Actionable advice"}
+  ]
+}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mime, data: b64 } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 2048
+          }
+        })
+      }
+    );
+
+    clearInterval(t);
+    steps.forEach(s => s.className = 'lstep done');
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.error?.message || `API error ${res.status}`;
+      throw new Error(msg);
+    }
+
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!raw) throw new Error('Empty response from Gemini');
+
+    const cleaned = raw.replace(/```json|```/g,'').trim();
+    const d = JSON.parse(cleaned);
+
+    hide(loaderArea);
+    render(d);
+
+  } catch(err) {
+    clearInterval(t);
+    hide(loaderArea);
+    show(errorArea);
+    let msg = err.message || 'Analysis failed.';
+    if (msg.includes('API_KEY_INVALID') || msg.includes('400')) msg = 'Invalid API key. Please check and re-enter your Gemini key.';
+    if (msg.includes('429')) msg = 'Too many requests. Wait a minute and try again.';
+    document.getElementById('errorMsg').textContent = msg;
+  } finally {
+    analyzeBtn.disabled = false;
+  }
+}
+
+function render(d) {
+  const qc = {Budget:'orange','Mid-range':'blue',Premium:'green',Luxury:'green'}[d.quality]||'blue';
+  const mkSrc = (s, isGlobal) => `
+    <div class="src">
+      <div>
+        <div class="sname">${s.name}${isGlobal&&s.country?' <span style="color:var(--muted);font-size:10px">('+s.country+')</span>':''}</div>
+        <div class="stag">${s.type}${s.note?' · '+s.note:''}</div>
+      </div>
+      <div class="sprice">${s.price}</div>
+    </div>`;
+
+  resultsArea.innerHTML = `
+    <div class="result-header">
+      <img class="result-thumb" src="${previewImg.src}" />
+      <div style="flex:1;min-width:0">
+        <div class="result-name">${d.objectName||'Object'}</div>
+        <div class="result-desc">${d.description||''}</div>
+        <div class="result-tags">
+          <span class="tag ${qc}">${d.quality||''}</span>
+          <span class="tag blue">${d.category||''}</span>
+          ${(d.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="profit-panel">
+      <div class="profit-title">💰 Profit Opportunity</div>
+      <div class="profit-grid">
+        <div class="pstat"><div class="pnum">${d.profitAnalysis?.buyAt||'—'}</div><div class="plbl">Buy At</div></div>
+        <div class="pstat"><div class="pnum">${d.profitAnalysis?.sellAt||'—'}</div><div class="plbl">Sell At</div></div>
+        <div class="pstat"><div class="pnum">${d.profitAnalysis?.margin||'—'}</div><div class="plbl">Margin</div></div>
+        <div class="pstat"><div class="pnum">${d.profitAnalysis?.profitPerUnit||'—'}</div><div class="plbl">Profit/Unit</div></div>
+        <div class="pstat"><div class="pnum">${d.profitAnalysis?.breakEven||'—'}</div><div class="plbl">Break Even</div></div>
+      </div>
+      <div class="psummary">${d.profitAnalysis?.summary||''}</div>
+    </div>
+
+    <div class="sec">Best prices to buy</div>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="pchdr"><div class="flag">🇮🇳</div>
+          <div><div class="pcn">India Markets</div><div class="pcs">Online · Wholesale · Mandi</div></div></div>
+        <div class="pmain">${d.indiaPrices?.averagePrice||'—'}</div>
+        <div class="prng">Range: ${d.indiaPrices?.priceRange||'—'}</div>
+        <div class="srcs">${(d.indiaPrices?.sources||[]).map(s=>mkSrc(s,false)).join('')}</div>
+      </div>
+      <div class="price-card">
+        <div class="pchdr"><div class="flag">${d.globalPrices?.flag||'🌍'}</div>
+          <div><div class="pcn">Global Best</div><div class="pcs">${d.globalPrices?.bestSourceCountry||'International'}</div></div></div>
+        <div class="pmain">${d.globalPrices?.averagePrice||'—'}</div>
+        <div class="prng">Range: ${d.globalPrices?.priceRange||'—'}</div>
+        <div class="srcs">${(d.globalPrices?.sources||[]).map(s=>mkSrc(s,true)).join('')}</div>
+      </div>
+    </div>
+
+    <div class="sec">Where to sell for best return</div>
+    <div class="sell-grid">
+      ${(d.whereToSell||[]).map(s=>`
+        <div class="sell-card">
+          <div class="sell-icon">${s.icon}</div>
+          <div class="sell-name">${s.name}</div>
+          <div class="sell-margin">~${s.margin} margin</div>
+          <div class="sell-desc">${s.desc}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="sec">Smart buying tips</div>
+    <div class="tips">
+      ${(d.buyingTips||[]).map(t=>`
+        <div class="tip">
+          <div class="tipicon">${t.icon}</div>
+          <div class="tiptext"><strong>${t.tip}:</strong> ${t.detail}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="reset-row">
+      <button class="btn btn-ghost" onclick="resetAll()">🔄 Scan Another Object</button>
+    </div>
+  `;
+
+  show(resultsArea);
+  resultsArea.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function resetAll() {
+  b64 = null; mime = null;
+  cameraInput.value = ''; fileInput.value = '';
+  previewImg.src = '';
+  resultsArea.style.display = 'none'; resultsArea.innerHTML = '';
+  hide(previewArea); hide(loaderArea); hide(errorArea);
+  captureArea.style.display = '';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
